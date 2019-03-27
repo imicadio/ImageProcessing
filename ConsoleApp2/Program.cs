@@ -42,10 +42,10 @@ namespace ConsoleApp2
 
         public static void ReadPixelToCSV(int threadsNumber)
         {
-            Bitmap image = new Bitmap("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\kobyla.jpg");
+            Bitmap image = new Bitmap("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.bmp");
 
             StringBuilder csvcontent = new StringBuilder();
-            csvcontent.AppendLine("X;Y;R;G;B;A");
+            csvcontent.AppendLine("X,Y,R,G,B,A");
 
             // metoda do wykonywania pomiaru czasu
             Stopwatch timeStart = new Stopwatch();
@@ -100,8 +100,10 @@ namespace ConsoleApp2
                             lock (image)
                             {
                                 pixelColor = image.GetPixel(i, j);
+                                csvcontent.AppendLine(String.Format("{0}, {1}, {2}, {3}, {4}, {5}",
+                                    i.ToString(), j.ToString(), pixelColor.R.ToString(), pixelColor.G.ToString(), pixelColor.B.ToString(), pixelColor.A.ToString()));
                             }
-                            csvcontent.AppendLine(i + ";" + j + ";" + pixelColor.R + ";" + pixelColor.G + ";" + pixelColor.B + ";" + pixelColor.A);
+                           
 
                             // moje
                             //string color = $"{pixelColor.R.ToString()}; {pixelColor.G.ToString()}; {pixelColor.B.ToString()}";
@@ -133,7 +135,7 @@ namespace ConsoleApp2
 
             Console.WriteLine("{0} wątków, czas czytania pliku: {1}", threadsNumber, timeStart.Elapsed);
 
-            string csvpath = "E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\kobyla.csv";
+            string csvpath = "E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.csv";
             File.AppendAllText(csvpath, csvcontent.ToString());
 
             Console.WriteLine("Wygenerowano plik CSV: " + csvpath + "\n");
@@ -141,7 +143,7 @@ namespace ConsoleApp2
 
         public static void ReadCSV(int threadsNumber)
         {
-            var st = File.ReadAllLines("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\kobyla.csv");
+            var st = File.ReadAllLines("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.csv");
 
             StringBuilder csvcontent = new StringBuilder();
 
@@ -150,7 +152,7 @@ namespace ConsoleApp2
             Stopwatch timeStart = new Stopwatch();
             Console.WriteLine("Cierpliwości program się wykonuje. \n");
 
-            int lines = File.ReadAllLines("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\kobyla.csv").Length;
+            int lines = File.ReadAllLines("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.csv").Length;
 
             Console.WriteLine(lines);
 
@@ -178,21 +180,24 @@ namespace ConsoleApp2
                     for (int i = linestStartIndex; i < linesLimit; i++)
                     {                       
                         var line = st[i];
-                        lock (line)
+                        if (line != null)
                         {
-                            var vec = line.Split(';');
-                            string RGB = vec[2] + ";" + vec[3] + ";" + vec[4];
-                            string dictionaryKey = dataDictionary.ContainsKey(RGB).ToString();
+                            lock (line)
+                            {
+                                var vec = line.Split(',');
+                                string RGB = vec[2] + "," + vec[3] + "," + vec[4];
+                                string dictionaryKey = dataDictionary.ContainsKey(RGB).ToString();
 
-                            if (dictionaryKey == "False")
-                            {
-                                dataDictionary.Add(RGB, 1);
+                                if (dictionaryKey == "False")
+                                {
+                                    dataDictionary.Add(RGB, 1);
+                                }
+                                else
+                                {
+                                    dataDictionary[RGB] += 1;
+                                }                                
                             }
-                            else
-                            {
-                                dataDictionary[RGB] += 1;
-                            }
-                        }                  
+                        }
                     }
                 });            
 
@@ -202,7 +207,7 @@ namespace ConsoleApp2
 
             foreach (KeyValuePair<string, int> entry in dataDictionary)
             {
-                line1 = entry.Key + ";" + entry.Value;
+                line1 = entry.Key + "," + entry.Value;
                 sw.WriteLine(line1);
             }
 
