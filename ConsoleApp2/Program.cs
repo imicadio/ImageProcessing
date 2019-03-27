@@ -15,7 +15,8 @@ namespace ConsoleApp2
         {
             int number = 11;
             Dictionary<string, int> dataDictionary = new Dictionary<string, int>();
-            while (number != 0){
+            while (number != 0)
+            {
                 Console.WriteLine("Wcisnij 1 aby zliczyć pixele pliku i wygenerować plik CSV. \nWciśnij 2 aby generować raport wystąpienia pixeli");
                 int caseSwitch = Convert.ToInt16(Console.ReadLine());
                 switch (caseSwitch)
@@ -36,7 +37,7 @@ namespace ConsoleApp2
                 }
                 number = caseSwitch;
             }
-            
+
             Console.ReadKey();
         }
 
@@ -45,7 +46,7 @@ namespace ConsoleApp2
             Bitmap image = new Bitmap("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.bmp");
 
             StringBuilder csvcontent = new StringBuilder();
-            csvcontent.AppendLine("X,Y,R,G,B,A");
+            csvcontent.AppendLine("X;Y;R;G;B;A");
 
             // metoda do wykonywania pomiaru czasu
             Stopwatch timeStart = new Stopwatch();
@@ -100,33 +101,8 @@ namespace ConsoleApp2
                             lock (image)
                             {
                                 pixelColor = image.GetPixel(i, j);
-                                csvcontent.AppendLine(String.Format("{0}, {1}, {2}, {3}, {4}, {5}",
-                                    i.ToString(), j.ToString(), pixelColor.R.ToString(), pixelColor.G.ToString(), pixelColor.B.ToString(), pixelColor.A.ToString()));
+                                csvcontent.AppendLine(i + ";" + j + ";" + pixelColor.R + ";" + pixelColor.G + ";" + pixelColor.B + ";" + pixelColor.A);
                             }
-                           
-
-                            // moje
-                            //string color = $"{pixelColor.R.ToString()}; {pixelColor.G.ToString()}; {pixelColor.B.ToString()}";
-
-                            //if (dataDictionary.ContainsKey(color))
-                            //{
-                            //    dataDictionary[color]++;
-                            //}
-                            //else
-                            //{
-                            //    dataDictionary[color] = 1;
-                            //}
-
-                            // Adrian
-                            //string color = $"{pixel.R.ToString()}, {pixel.G.ToString()}, {pixel.B.ToString()}";
-                            //if (shades.ContainsKey(color))
-                            //{
-                            //    shades[color]++;
-                            //}
-                            //else
-                            //{
-                            //    shades[color] = 1;
-                            //}
                         }
                     }
                 });
@@ -143,25 +119,24 @@ namespace ConsoleApp2
 
         public static void ReadCSV(int threadsNumber)
         {
-            var st = File.ReadAllLines("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.csv");
+            var st = File.ReadLines("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.csv").Select(l => l).ToList();
 
             StringBuilder csvcontent = new StringBuilder();
 
             Dictionary<string, int> dataDictionary = new Dictionary<string, int>();
 
             Stopwatch timeStart = new Stopwatch();
+            timeStart.Start();
             Console.WriteLine("Cierpliwości program się wykonuje. \n");
 
-            int lines = File.ReadAllLines("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.csv").Length;
+            Console.WriteLine("Plik zawiera {0} wierszy", st.Count);
 
-            Console.WriteLine(lines);
-
-            int linesJump = lines / threadsNumber;
-            int moduloLines = lines % threadsNumber;
+            int linesJump = st.Count / threadsNumber;
+            int moduloLines = st.Count % threadsNumber;
             int[] linesBreakpoints = new int[threadsNumber + 1];
             linesBreakpoints[0] = 0;
 
-            for (int i = 2; i < threadsNumber; i++)
+            for (int i = 2; i < threadsNumber + 2; i++)
             {
                 linesBreakpoints[i - 1] = linesJump * (i - 1);
             }
@@ -178,42 +153,52 @@ namespace ConsoleApp2
                     int linesLimit = linesBreakpoints[index + 1];
 
                     for (int i = linestStartIndex; i < linesLimit; i++)
-                    {                       
+                    {
+                        Dictionary<string, int> dataDictionary1 = new Dictionary<string, int>();
                         var line = st[i];
-                        if (line != null)
+                        lock (line)
                         {
-                            lock (line)
-                            {
-                                var vec = line.Split(',');
-                                string RGB = vec[2] + "," + vec[3] + "," + vec[4];
-                                string dictionaryKey = dataDictionary.ContainsKey(RGB).ToString();
+                            var vec = line.Split(';');
+                            string RGB = vec[2] + ";" + vec[3] + ";" + vec[4];
 
-                                if (dictionaryKey == "False")
+                            string dictionaryKey = dataDictionary1.ContainsKey(RGB).ToString();
+
+                            if (dictionaryKey == "False")
+                                dataDictionary1.Add(RGB, 1);
+                            else
+                                dataDictionary1[RGB] += 1;
+
+                            lock (dataDictionary)
+                            {
+                                foreach (KeyValuePair<string, int> entry in dataDictionary1)
                                 {
-                                    dataDictionary.Add(RGB, 1);
+                                    if (dataDictionary.ContainsKey(entry.Key))
+                                        dataDictionary[entry.Key] += 1;
+                                    else
+                                        dataDictionary.Add(entry.Key, entry.Value);
                                 }
-                                else
-                                {
-                                    dataDictionary[RGB] += 1;
-                                }                                
                             }
                         }
                     }
-                });            
+                });
 
             StreamWriter sw = new StreamWriter(@"E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\RGB1.csv");
 
             string line1 = string.Empty;
 
-            foreach (KeyValuePair<string, int> entry in dataDictionary)
+            var sorted = dataDictionary.OrderByDescending(l => l.Value);
+
+            foreach (var entry in dataDictionary.OrderByDescending(l => l.Value))
             {
-                line1 = entry.Key + "," + entry.Value;
+                line1 = entry.Key + ";" + entry.Value;
                 sw.WriteLine(line1);
             }
 
             timeStart.Stop();
 
             Console.WriteLine("{0} wątków, czas czytania pliku: {1}", threadsNumber, timeStart.Elapsed);
+            Console.WriteLine("Najczęściej powtarzające się wartości: \n");
+            Console.WriteLine("{0} wystąpiło: {1} razy", sorted.First().Key, sorted.First().Value);
 
             Console.WriteLine("Koniec Programu");
 
