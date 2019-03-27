@@ -170,12 +170,12 @@ namespace ConsoleApp2
 
                             lock (dataDictionary)
                             {
-                                foreach (KeyValuePair<string, int> entry in dataDictionary1)
+                                foreach (KeyValuePair<string, int> entry1 in dataDictionary1)
                                 {
-                                    if (dataDictionary.ContainsKey(entry.Key))
-                                        dataDictionary[entry.Key] += 1;
+                                    if (dataDictionary.ContainsKey(entry1.Key))
+                                        dataDictionary[entry1.Key] += 1;
                                     else
-                                        dataDictionary.Add(entry.Key, entry.Value);
+                                        dataDictionary.Add(entry1.Key, entry1.Value);
                                 }
                             }
                         }
