@@ -119,7 +119,7 @@ namespace ConsoleApp2
 
         public static void ReadCSV(int threadsNumber)
         {
-            var st = File.ReadAllLines("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.csv");
+            var st = File.ReadLines("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.csv").Select(l => l).ToList();
 
             StringBuilder csvcontent = new StringBuilder();
 
@@ -129,10 +129,10 @@ namespace ConsoleApp2
             timeStart.Start();
             Console.WriteLine("Cierpliwości program się wykonuje. \n");
 
-            Console.WriteLine("Plik posiada {0} linijek\n", st.Length);
+            Console.WriteLine("Plik posiada {0} linijek\n", st.Count);
 
-            int linesJump = st.Length / threadsNumber;
-            int moduloLines = st.Length % threadsNumber;
+            int linesJump = st.Count / threadsNumber;
+            int moduloLines = st.Count % threadsNumber;
             int[] linesBreakpoints = new int[threadsNumber + 1];
             linesBreakpoints[0] = 0;
 
@@ -163,14 +163,17 @@ namespace ConsoleApp2
                                 string RGB = vec[2] + ";" + vec[3] + ";" + vec[4];
                                 string dictionaryKey = dataDictionary.ContainsKey(RGB).ToString();
 
-                                if (dictionaryKey == "False")
+                                lock (dictionaryKey)
                                 {
-                                    dataDictionary.Add(RGB, 1);
-                                }
-                                else
-                                {
-                                    dataDictionary[RGB] += 1;
-                                }                                
+                                    if (dictionaryKey == "False")
+                                    {
+                                        dataDictionary.Add(RGB, 1);
+                                    }
+                                    else
+                                    {
+                                        dataDictionary[RGB] += 1;
+                                    }
+                                }          
                             }
                         }
                     }
