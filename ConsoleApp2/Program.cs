@@ -162,20 +162,20 @@ namespace ConsoleApp2
                             string RGB = vec[2] + ";" + vec[3] + ";" + vec[4];
 
                             string dictionaryKey = dataDictionary1.ContainsKey(RGB).ToString();
-
-                            if (dictionaryKey == "False")
-                                dataDictionary1.Add(RGB, 1);
-                            else
-                                dataDictionary1[RGB] += 1;
+                            
+                                if (dataDictionary1.ContainsKey(RGB))
+                                    dataDictionary1[RGB] += 1;                            
+                                else
+                                    dataDictionary1.Add(RGB, 1);
 
                             lock (dataDictionary)
                             {
-                                foreach (KeyValuePair<string, int> entry1 in dataDictionary1)
+                                foreach (KeyValuePair<string, int> entry in dataDictionary1)
                                 {
-                                    if (dataDictionary.ContainsKey(entry1.Key))
-                                        dataDictionary[entry1.Key] += 1;
+                                    if (dataDictionary.ContainsKey(entry.Key))
+                                        dataDictionary[entry.Key] += 1;
                                     else
-                                        dataDictionary.Add(entry1.Key, entry1.Value);
+                                        dataDictionary.Add(entry.Key, entry.Value);
                                 }
                             }
                         }
