@@ -25,11 +25,13 @@ namespace ConsoleApp2
                         Console.WriteLine("Musisz podać liczbę wątków");
                         int threadsNumber = Convert.ToInt16(Console.ReadLine());
                         ReadPixelToCSV(threadsNumber);
+                        Console.WriteLine("================================\n");
                         break;
                     case 2:
                         Console.WriteLine("Musisz podać liczbę wątków");
                         int threadsNumber1 = Convert.ToInt16(Console.ReadLine());
                         ReadCSV(threadsNumber1);
+                        Console.WriteLine("================================\n");
                         break;
                     default:
                         Console.WriteLine("Koniec programu. Wciśnij dowolny klawisz aby zakończyć.");
@@ -45,13 +47,16 @@ namespace ConsoleApp2
         {
             Bitmap image = new Bitmap("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.bmp");
 
-            StringBuilder csvcontent = new StringBuilder();
-            csvcontent.AppendLine("X;Y;R;G;B;A");
+            //StringBuilder csvcontent = new StringBuilder();
+            //csvcontent.AppendLine("X;Y;R;G;B;A");
 
             // metoda do wykonywania pomiaru czasu
             Stopwatch timeStart = new Stopwatch();
             timeStart.Start();
             Console.WriteLine("Cierpliwości program się wykonuje. \n");
+
+            int x = image.Width;
+            int y = image.Height;
 
             int widthJump = image.Width / threadsNumber;
             int heightJump = image.Height / threadsNumber;
@@ -81,8 +86,11 @@ namespace ConsoleApp2
             }
 
             Dictionary<string, int> dataDictionary = new Dictionary<string, int>();
-
-            Parallel.For(0, threadsNumber,
+            using (FileStream f = File.Create("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.csv"))
+            {
+                byte[] t = new UTF8Encoding(true).GetBytes("x;y;r;g;b\n");
+                f.Write(t, 0, t.Length);
+                Parallel.For(0, threadsNumber,
                 index =>
                 {
 
@@ -101,20 +109,32 @@ namespace ConsoleApp2
                             lock (image)
                             {
                                 pixelColor = image.GetPixel(i, j);
-                                csvcontent.AppendLine(i + ";" + j + ";" + pixelColor.R + ";" + pixelColor.G + ";" + pixelColor.B + ";" + pixelColor.A);
+                                byte[] text = new UTF8Encoding(true).GetBytes(i + ";" + j + ";" + pixelColor.R + ";" + pixelColor.G + ";" + pixelColor.B + "\n");
+                                f.Write(text, 0, text.Length);
+                                //lock (pixelColor)
+                                //{
+                                //    byte[] text = new UTF8Encoding(true).GetBytes(i + ";" + j + ";" + pixelColor.R + ";" + pixelColor.G + ";" + pixelColor.B + "\n");
+                                //    f.Write(text, 0, text.Length);
+                                //    //csvcontent.AppendLine(i + ";" + j + ";" + pixelColor.R + ";" + pixelColor.G + ";" + pixelColor.B + ";" + pixelColor.A);
+                                //}
                             }
                         }
                     }
                 });
 
+                Console.WriteLine("Plik posiada {0} linijek", f.Length);
+            }
+
             timeStart.Stop();
 
             Console.WriteLine("{0} wątków, czas czytania pliku: {1}", threadsNumber, timeStart.Elapsed);
 
-            string csvpath = "E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.csv";
-            File.AppendAllText(csvpath, csvcontent.ToString());
+            //string csvpath = "E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.csv";
+            //File.AppendAllText(csvpath, csvcontent.ToString());
+            //var st = File.ReadLines("E:\\Magisterka\\Popek\\cw1\\ConsoleApp2\\BAKU1.csv").Select(l => l).ToList();
 
-            Console.WriteLine("Wygenerowano plik CSV: " + csvpath + "\n");
+            //Console.WriteLine("Wygenerowano plik CSV: " + csvpath + "\n");
+            //Console.WriteLine("Plik posiada {0} linijek", st.Count);
         }
 
         public static void ReadCSV(int threadsNumber)
@@ -162,22 +182,25 @@ namespace ConsoleApp2
                             string RGB = vec[2] + ";" + vec[3] + ";" + vec[4];
 
                             string dictionaryKey = dataDictionary1.ContainsKey(RGB).ToString();
-                            
-                                if (dataDictionary1.ContainsKey(RGB))
-                                    dataDictionary1[RGB] += 1;                            
-                                else
-                                    dataDictionary1.Add(RGB, 1);
 
                             lock (dataDictionary)
                             {
-                                foreach (KeyValuePair<string, int> entry in dataDictionary1)
-                                {
-                                    if (dataDictionary.ContainsKey(entry.Key))
-                                        dataDictionary[entry.Key] += 1;
-                                    else
-                                        dataDictionary.Add(entry.Key, entry.Value);
-                                }
+                                if (dataDictionary.ContainsKey(RGB))
+                                    dataDictionary[RGB] += 1;
+                                else
+                                    dataDictionary.Add(RGB, 1);
                             }
+
+                            //lock (dataDictionary)
+                            //{
+                            //    foreach (KeyValuePair<string, int> entry in dataDictionary1)
+                            //    {
+                            //        if (dataDictionary.ContainsKey(entry.Key))
+                            //            dataDictionary[entry.Key] += 1;
+                            //        else
+                            //            dataDictionary.Add(entry.Key, entry.Value);
+                            //    }
+                            //}
                         }
                     }
                 });
@@ -186,19 +209,25 @@ namespace ConsoleApp2
 
             string line1 = string.Empty;
 
-            var sorted = dataDictionary.OrderByDescending(l => l.Value);
-
-            foreach (var entry in dataDictionary.OrderByDescending(l => l.Value))
-            {
-                line1 = entry.Key + ";" + entry.Value;
-                sw.WriteLine(line1);
-            }
-
             timeStart.Stop();
 
-            Console.WriteLine("{0} wątków, czas czytania pliku: {1}", threadsNumber, timeStart.Elapsed);
-            Console.WriteLine("Najczęściej powtarzające się wartości: \n");
-            Console.WriteLine("{0} wystąpiło: {1} razy", sorted.First().Key, sorted.First().Value);
+            var max = from x in dataDictionary where x.Value == dataDictionary.Max(v => v.Value) select x.Key;
+
+            var maxValue = dataDictionary.Values.Max();           
+
+            var sorted = dataDictionary.Aggregate((x, y) => x.Value > y.Value ? x : y).Key;
+
+            //foreach (var entry in dataDictionary.OrderByDescending(l => l.Value))
+            //{
+            //    line1 = entry.Key + ";" + entry.Value;
+            //    sw.WriteLine(line1);
+            //}
+
+            
+
+            Console.WriteLine("{0} wątków, czas czytania pliku: {1}\n", threadsNumber, timeStart.Elapsed);
+            Console.WriteLine("Najczęściej powtarzające się wartości: ");
+            Console.WriteLine("{0} wystąpiło: {1} razy\n", sorted, maxValue);
 
             Console.WriteLine("Koniec Programu");
 
